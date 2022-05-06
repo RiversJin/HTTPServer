@@ -39,7 +39,7 @@ func myLogger() func(r *http.Request) {
 	}
 }
 func main() {
-	Ip, _ := getClientIp()
+	Ips, _ := getClientIp()
 	fmt.Println("Please Input the port (Default 8080, 0 means any).")
 	var _port int32
 	_, err := fmt.Scanf("%d", &_port)
@@ -47,28 +47,41 @@ func main() {
 		_port = 8080
 	}
 	Port := strconv.Itoa(int(_port))
-	Addr := fmt.Sprintf("%s:%s", Ip, Port)
+	Addrs := make([]string, len(Ips))
+	for i := 0; i < len(Ips); i++ {
+		ip := Ips[i]
+		Addrs[i] = fmt.Sprintf("%s:%s", ip, Port)
+	}
 	fileServer := FileHandlerWithLog(http.Dir("."), myLogger())
-	log.Printf("Starting at http://%s", Addr)
+	log.Println("Starting to server, avaliable url:")
+	for _, addr := range Addrs {
+		log.Printf("http://%s\n", addr)
+	}
 	err = http.ListenAndServe(":"+Port, fileServer)
 	log.Fatal(err)
 }
-func getClientIp() (string, error) {
+func getClientIp() ([]string, error) {
+	broadcastIps := []string{}
 	addrs, err := net.InterfaceAddrs()
 
 	if err != nil {
-		return "", err
+		return broadcastIps, err
 	}
 
 	for _, address := range addrs {
 		// 检查ip地址判断是否回环地址
 		if ipnet, ok := address.(*net.IPNet); ok && !ipnet.IP.IsLoopback() && !ipnet.IP.IsLinkLocalUnicast() {
-			if ipnet.IP.To4() != nil {
-				return ipnet.IP.String(), nil
+			if ipnet.IP.To4() == nil {
+				broadcastIps = append(broadcastIps, fmt.Sprintf("[%s]", ipnet.IP.String()))
+			} else {
+				broadcastIps = append(broadcastIps, ipnet.IP.String())
 			}
-
 		}
 	}
 
-	return "", errors.New("can not find the client ip address")
+	if len(broadcastIps) <= 0 {
+		return []string{}, errors.New("can not find the client ip address")
+	}
+
+	return broadcastIps, nil
 }
