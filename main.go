@@ -35,16 +35,21 @@ func main() {
 	}
 	Port := strconv.Itoa(int(_port))
 	Addrs := make([]string, len(Ips))
-	for i := 0; i < len(Ips); i++ {
-		ip := Ips[i]
-		Addrs[i] = fmt.Sprintf("%s:%s", ip, Port)
-	}
+
 	fileServer := FileHandlerWithLog(http.Dir("."), myLogger())
 	log.Println("Starting to server, avaliable url:")
-	for _, addr := range Addrs {
-		log.Printf("http://%s\n", addr)
+
+	listener, err := net.Listen("tcp", ":"+Port)
+	if err != nil {
+		panic(err)
 	}
-	err = http.ListenAndServe(":"+Port, fileServer)
+	port := listener.Addr().(*net.TCPAddr).Port
+	for i := 0; i < len(Ips); i++ {
+		ip := Ips[i]
+		Addrs[i] = fmt.Sprintf("%s:%d", ip, port)
+		log.Printf("http://%s\n", Addrs[i])
+	}
+	err = http.Serve(listener, fileServer)
 	log.Fatal(err)
 }
 func getClientIp() ([]string, error) {
