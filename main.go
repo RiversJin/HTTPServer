@@ -11,19 +11,6 @@ import (
 	"strconv"
 )
 
-type fileHandlerWithLog struct {
-	handler http.Handler
-	logger  func(*http.Request)
-}
-
-func FileHandlerWithLog(root http.FileSystem, logger func(*http.Request)) http.Handler {
-	return &fileHandlerWithLog{http.FileServer(root), logger}
-}
-
-func (fhw *fileHandlerWithLog) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	fhw.logger(r)
-	fhw.handler.ServeHTTP(w, r)
-}
 func myLogger() func(r *http.Request) {
 	pwd, err := os.Getwd()
 	if err != nil {
